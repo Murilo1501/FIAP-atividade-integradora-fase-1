@@ -1,4 +1,3 @@
-
 """
 1. TEMPERATURA INTERNA (internTemperature)
 ✅ Operacional: -40°C a +50°C
@@ -31,43 +30,37 @@
 """
 
 
-internTemperature = float(input("Digite a temperatura interna: "));
-externalTemperature = float(input("Digite a temperatura externa: "));
-energyLevel = float(input( "Digite o nivel de energia: "));
-pressure = float(input( "Digite a pressao do tanque: "));
-status = str(input("Digite o status dos modulos criticos: "));
+internTemperature = float(input("Digite a temperatura interna: "))
+externalTemperature = float(input("Digite a temperatura externa: "))
+energyLevel = float(input("Digite o nivel de energia: "))
+pressure = float(input("Digite a pressao do tanque: "))
+status = str(input("Digite o status dos modulos criticos: "))
 
 
 def calculateInternalTemperature(internal):
+    # Temperatura interna | Gabriel
+    if internTemperature > 70:
+        return "Temperatura interna: CRÍTICA"
+    elif internTemperature > 50:
+        return "Temperatura interna: ALERTA"
+    elif -40 <= internTemperature <= 50:
+        return "Temperatura interna: OPERACIONAL"
 
-  # Temperatura interna | Gabriel
-  
-  if internTemperature > 70:
-    return "Temperatura interna: CRÍTICA"
+    if 20 <= internTemperature <= 25:
+        return "Temperatura interna IDEAL"
+    else:
+        return "Temperatura interna abaixo da faixa operacional"
 
-  elif internTemperature > 50:
-    print("Temperatura interna: ALERTA")
 
-  elif -40 <= internTemperature <= 50:
-    print("Temperatura interna: OPERACIONAL")
-
-  if 20 <= internTemperature <= 25:
-    print("Temperatura interna IDEAL")
-  else:
-      print("Temperatura interna abaixo da faixa operacional")
-
-  
 def calculateEntryLevel(entryLevel):
-  ##Nivel de enegeria | Murilo
+    ## Nivel de enegeria | Murilo
+    if energyLevel >= 70 and energyLevel <= 100:
+        return "Energia suficiente para decolagem"
+    elif energyLevel <= 40 and energyLevel <= 69:
+        return "Energia baixa"
+    elif entryLevel < 40:
+        return "Energia insuficiente para decolagem"
 
-  if energyLevel >= 70 and energyLevel <= 100:
-    return "Energia suficiente para decolagem"
-  
-  elif energyLevel <= 40 and energyLevel <= 69:
-    return "Energia baixa"
-
-  elif entryLevel < 40:
-    return "Energia insuficiente para decolagem"
 
 def calculatepressure(pressure):
     if pressure < 3.5 or pressure > 6.5:
@@ -79,36 +72,20 @@ def calculatepressure(pressure):
     else:
         return "ALERTA"
 
+
 def modulestatus(status):
- #STATUS DOS MÓDULOS
-  if status == "Ok":
-    print("Modulos Funcionando")
-  else:
-    print("Falha")
+    # STATUS DOS MÓDULOS
+    if status == "Ok":
+        return "Modulos Funcionando"
+    else:
+        return "Falha"
 
 
-
-def launchVerify(internTemperature, externalTemperature, energyLevel, ressure,status ):
-
-
-  calculateInternalTemperature(internTemperature)
-
-  calculateEntryLevel(energyLevel)
-
-  calculatepressure(pressure)
-
-  modulestatus(status)
-
-  
- 
-launchVerify(internTemperature, externalTemperature, energyLevel, pressure, status)   
-        
+def launchVerify(internTemperature, externalTemperature, energyLevel, ressure, status):
+    print(calculateInternalTemperature(internTemperature))
+    print(calculateEntryLevel(energyLevel))
+    print(calculatepressure(pressure))
+    print(modulestatus(status))
 
 
-
-
-
-
-
-
-
+launchVerify(internTemperature, externalTemperature, energyLevel, pressure, status)
