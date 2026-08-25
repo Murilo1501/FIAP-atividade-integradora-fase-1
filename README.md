@@ -6,3 +6,4 @@
 - **Murilo Ribeiro Falconeri**
 - **Gabriel Ferreira da Silva**
 - **Gustavo Rocha Caxias**
+- **José Kauan Medeiros Machado**
