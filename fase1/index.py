@@ -43,13 +43,12 @@ def calculateInternalTemperature(internal):
         return "Temperatura interna: CRÍTICA"
     elif internTemperature > 50:
         return "Temperatura interna: ALERTA"
+    elif 20 <= internTemperature <= 25:
+        return "Temperatura interna: IDEAL"
     elif -40 <= internTemperature <= 50:
         return "Temperatura interna: OPERACIONAL"
-
-    if 20 <= internTemperature <= 25:
-        return "Temperatura interna IDEAL"
     else:
-        return "Temperatura interna abaixo da faixa operacional"
+        return "Temperatura interna: abaixo da faixa operacional"
 
 
 def calculateEntryLevel(entryLevel):
@@ -81,7 +80,7 @@ def modulestatus(status):
         return "Falha"
 
 
-def launchVerify(internTemperature, externalTemperature, energyLevel, ressure, status):
+def launchVerify(internTemperature, externalTemperature, energyLevel, pressure, status):
     print(calculateInternalTemperature(internTemperature))
     print(calculateEntryLevel(energyLevel))
     print(calculatepressure(pressure))
