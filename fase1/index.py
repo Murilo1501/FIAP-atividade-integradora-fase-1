@@ -62,16 +62,28 @@ def get_status_input(prompt):
         print("Erro: Digite 'ok', 'falha', 'operacional' ou 'critico'.")
 
 
+def get_integrity_input(prompt):
+    while True:
+        try:
+            value = int(input(prompt))
+            if value in [0, 1]:
+                return value
+            print("Erro: Digite 0 (comprometida) ou 1 (íntegra).")
+        except ValueError:
+            print("Erro: Digite 0 ou 1.")
+
+
 def get_system_inputs():
     internal_temperature = get_float_input("Digite a temperatura interna (°C): ")
     external_temperature = get_float_input("Digite a temperatura externa (°C): ")
+    structural_integrity = get_integrity_input("Digite a integridade estrutural (0/1): ")
     energy_level = get_float_input("Digite o nível de energia (%): ")
     pressure_value = get_float_input("Digite a pressão do tanque (bar): ")
     module_status = get_status_input("Digite o status dos módulos críticos (ok/falha): ")
-    return internal_temperature, external_temperature, energy_level, pressure_value, module_status
+    return internal_temperature, external_temperature, structural_integrity, energy_level, pressure_value, module_status
 
 
-internal_temperature, external_temperature, energy_level, pressure_value, module_status = get_system_inputs()
+internal_temperature, external_temperature, structural_integrity, energy_level, pressure_value, module_status = get_system_inputs()
 
 
 def calculate_internal_temperature(internal):
@@ -122,6 +134,13 @@ def calculate_pressure(pressure_val):
         return "Pressão: ALERTA", "alerta"
 
 
+def check_structural_integrity(integrity):
+    if integrity == 1:
+        return "Integridade estrutural: ÍNTEGRA", "ok"
+    else:
+        return "Integridade estrutural: COMPROMETIDA", "critico"
+
+
 def check_module_status(status):
     if status.lower() in ["ok", "operacional"]:
         return "Módulos: FUNCIONANDO", "ok"
@@ -129,7 +148,7 @@ def check_module_status(status):
         return "Módulos: FALHA", "critico"
 
 
-def verify_launch(internal_temp, external_temp, energy, pressure_val, module_status):
+def verify_launch(internal_temp, external_temp, integrity, energy, pressure_val, module_status):
     results = []
     
     msg_temp, status_temp = calculate_internal_temperature(internal_temp)
@@ -137,6 +156,9 @@ def verify_launch(internal_temp, external_temp, energy, pressure_val, module_sta
     
     msg_ext_temp, status_ext_temp = calculate_external_temperature(external_temp)
     results.append((msg_ext_temp, status_ext_temp))
+    
+    msg_integrity, status_integrity = check_structural_integrity(integrity)
+    results.append((msg_integrity, status_integrity))
     
     msg_energy, status_energy = calculate_energy_level(energy)
     results.append((msg_energy, status_energy))
@@ -174,4 +196,4 @@ def verify_launch(internal_temp, external_temp, energy, pressure_val, module_sta
         return True
 
 
-verify_launch(internal_temperature, external_temperature, energy_level, pressure_value, module_status)
+verify_launch(internal_temperature, external_temperature, structural_integrity, energy_level, pressure_value, module_status)
