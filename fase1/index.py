@@ -1,35 +1,22 @@
 """
-1. TEMPERATURA INTERNA (internal_temperature)
-✅ Operacional: -40°C a +50°C
-⚠️ Alerta: 50°C a 70°C
-🚨 Crítico: > 70°C
-📌 Ideal: 20°C a 25°C
+faixas seguras da missao Aurora usadas na verificacao pre-decolagem
 
-2. TEMPERATURA EXTERNA (external_temperature)
-✅ Operacional: -50°C a +60°C
-⚠️ Alerta: -50°C ou > 60°C
-🚨 Crítico: < -60°C ou > 80°C
-📌 Ideal: 0°C a 30°C (condições de solo)
-
-3. NÍVEL DE ENERGIA (energy_level)
-✅ Operacional: 70% a 100%
-⚠️ Alerta: 40% a 69%
-🚨 Crítico: < 40%
-📌 Necessário para decolagem: ≥ 95%
-
-4. PRESSÃO DO TANQUE (pressure_value)
-✅ Operacional: 4.0 a 5.5 bar
-⚠️ Alerta: 3.5 a 3.9 bar ou 5.6 a 6.0 bar
-🚨 Crítico: < 3.5 bar ou > 6.5 bar
-📌 Ideal: 4.5 bar
-
-
-5. STATUS DOS MÓDULOS CRÍTICOS (module_status)
-✅ "OK" ou "OPERACIONAL"
-🚨 "FALHA" ou "CRÍTICO"
+temperatura interna: ok de -40 a 50, alerta de 50 a 70, critico acima de 70
+temperatura externa: ok de -50 a 60, alerta de 60 a 80, critico fora de -60 a 80
+energia: ok a partir de 95%, alerta de 40 a 94, critico abaixo de 40
+pressao: ok de 4.0 a 5.5 bar, alerta de 3.5 a 3.9 e de 5.6 a 6.5, critico fora disso
+integridade estrutural: 1 passa, 0 aborta
+modulos criticos: ok ou operacional passa, o resto aborta
 """
 
 USE_COLORS = True
+
+# numeros de energia da orion da NASA
+BATTERY_CAPACITY_KWH = 14.4    # 4 baterias de 3.6 kwh cada
+LAUNCH_CONSUMPTION_KWH = 3.0   # gasto da subida ate abrir os paineis solares
+ENERGY_LOSS_RATE = 0.10        # perda de conversao e cabo
+CRUISE_CONSUMPTION_KW = 1.2
+RESERVE_RATE = 0.20            # nao deixa descarregar tudo
 
 
 class Colors:
@@ -52,6 +39,15 @@ def get_float_input(prompt):
             return float(input(prompt))
         except ValueError:
             print("Erro: Digite um valor numérico válido.")
+
+
+def get_percentage_input(prompt):
+    # carga de bateria so faz sentido de 0 a 100
+    while True:
+        value = get_float_input(prompt)
+        if 0 <= value <= 100:
+            return value
+        print("Erro: O nível de energia deve estar entre 0 e 100%.")
 
 
 def get_status_input(prompt):
@@ -77,13 +73,17 @@ def get_system_inputs():
     internal_temperature = get_float_input("Digite a temperatura interna (°C): ")
     external_temperature = get_float_input("Digite a temperatura externa (°C): ")
     structural_integrity = get_integrity_input("Digite a integridade estrutural (0/1): ")
-    energy_level = get_float_input("Digite o nível de energia (%): ")
+    energy_level = get_percentage_input("Digite o nível de energia (%): ")
     pressure_value = get_float_input("Digite a pressão do tanque (bar): ")
     module_status = get_status_input("Digite o status dos módulos críticos (ok/falha): ")
     return internal_temperature, external_temperature, structural_integrity, energy_level, pressure_value, module_status
 
 
-internal_temperature, external_temperature, structural_integrity, energy_level, pressure_value, module_status = get_system_inputs()
+try:
+    internal_temperature, external_temperature, structural_integrity, energy_level, pressure_value, module_status = get_system_inputs()
+except (EOFError, KeyboardInterrupt):
+    print("\nLeitura interrompida.")
+    raise SystemExit(1)
 
 
 def calculate_internal_temperature(internal):
@@ -118,7 +118,8 @@ def calculate_energy_level(energy):
     elif 40 <= energy < 70:
         return "Energia: ALERTA", "alerta"
     elif energy < 95:
-        return "Energia: OPERACIONAL", "ok"
+        # da pra ligar tudo mas nao pra decolar
+        return "Energia: ABAIXO DO MÍNIMO PARA DECOLAGEM", "alerta"
     else:
         return "Energia: PRONTA PARA DECOLAGEM", "ok"
 
@@ -146,6 +147,43 @@ def check_module_status(status):
         return "Módulos: FUNCIONANDO", "ok"
     else:
         return "Módulos: FALHA", "critico"
+
+
+def calculate_energy_autonomy(energy):
+    # tira as perdas, o gasto da decolagem e a reserva, o que sobra vira tempo de voo
+    stored_energy = BATTERY_CAPACITY_KWH * (energy / 100)
+    energy_losses = stored_energy * ENERGY_LOSS_RATE
+    usable_energy = stored_energy - energy_losses
+    reserve_energy = BATTERY_CAPACITY_KWH * RESERVE_RATE
+    remaining_energy = usable_energy - LAUNCH_CONSUMPTION_KWH - reserve_energy
+
+    if remaining_energy <= 0:
+        autonomy_hours = 0.0
+    else:
+        autonomy_hours = remaining_energy / CRUISE_CONSUMPTION_KW
+
+    return stored_energy, energy_losses, usable_energy, reserve_energy, remaining_energy, autonomy_hours
+
+
+def print_energy_analysis(energy):
+    stored, losses, usable, reserve, remaining, hours = calculate_energy_autonomy(energy)
+
+    print("\n=== ANÁLISE ENERGÉTICA ===")
+    print(f"Capacidade total do banco: {BATTERY_CAPACITY_KWH:.1f} kWh")
+    print(f"Carga atual: {energy:.1f}%")
+    print(f"Energia armazenada: {stored:.1f} kWh")
+    print(f"Perdas energéticas ({ENERGY_LOSS_RATE * 100:.0f}%): -{losses:.1f} kWh")
+    print(f"Energia útil: {usable:.1f} kWh")
+    print(f"Consumo na decolagem: -{LAUNCH_CONSUMPTION_KWH:.1f} kWh")
+    print(f"Reserva operacional ({RESERVE_RATE * 100:.0f}%): -{reserve:.1f} kWh")
+    print(f"Energia disponível após a decolagem: {remaining:.1f} kWh")
+
+    if hours <= 0:
+        print(colorize("Autonomia estimada: INSUFICIENTE PARA A MISSÃO", Colors.RED))
+    else:
+        print(colorize(f"Autonomia estimada: {hours:.1f} horas", Colors.CYAN))
+
+    return hours
 
 
 def verify_launch(internal_temp, external_temp, integrity, energy, pressure_val, module_status):
@@ -186,8 +224,9 @@ def verify_launch(internal_temp, external_temp, integrity, energy, pressure_val,
         result_msg = "DECOLAGEM ABORTADA - Sistema em estado crítico"
         print(colorize(result_msg, Colors.RED))
         return False
-    elif has_alert and energy < 95:
-        result_msg = "DECOLAGEM ABORTADA - Alertas detectados e energia insuficiente"
+    elif has_alert:
+        # alerta em qualquer sistema ja segura o lancamento
+        result_msg = "DECOLAGEM ABORTADA - Alertas detectados nos sistemas"
         print(colorize(result_msg, Colors.RED))
         return False
     else:
@@ -197,3 +236,5 @@ def verify_launch(internal_temp, external_temp, integrity, energy, pressure_val,
 
 
 verify_launch(internal_temperature, external_temperature, structural_integrity, energy_level, pressure_value, module_status)
+
+print_energy_analysis(energy_level)
