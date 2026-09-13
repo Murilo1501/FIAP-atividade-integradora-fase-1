@@ -1,6 +1,4 @@
 """
-faixas seguras da missao Aurora usadas na verificacao pre-decolagem
-
 temperatura interna: ok de -40 a 50, alerta de 50 a 70, critico acima de 70
 temperatura externa: ok de -50 a 60, alerta de 60 a 80, critico fora de -60 a 80
 energia: ok a partir de 95%, alerta de 40 a 94, critico abaixo de 40
@@ -9,14 +7,15 @@ integridade estrutural: 1 passa, 0 aborta
 modulos criticos: ok ou operacional passa, o resto aborta
 """
 
+from analise_ia import run_ai_analysis
+
 USE_COLORS = True
 
-# numeros de energia da orion da NASA
-BATTERY_CAPACITY_KWH = 14.4    # 4 baterias de 3.6 kwh cada
-LAUNCH_CONSUMPTION_KWH = 3.0   # gasto da subida ate abrir os paineis solares
-ENERGY_LOSS_RATE = 0.10        # perda de conversao e cabo
+BATTERY_CAPACITY_KWH = 14.4
+LAUNCH_CONSUMPTION_KWH = 3.0
+ENERGY_LOSS_RATE = 0.10
 CRUISE_CONSUMPTION_KW = 1.2
-RESERVE_RATE = 0.20            # nao deixa descarregar tudo
+RESERVE_RATE = 0.20
 
 
 class Colors:
@@ -42,7 +41,6 @@ def get_float_input(prompt):
 
 
 def get_percentage_input(prompt):
-    # carga de bateria so faz sentido de 0 a 100
     while True:
         value = get_float_input(prompt)
         if 0 <= value <= 100:
@@ -118,7 +116,6 @@ def calculate_energy_level(energy):
     elif 40 <= energy < 70:
         return "Energia: ALERTA", "alerta"
     elif energy < 95:
-        # da pra ligar tudo mas nao pra decolar
         return "Energia: ABAIXO DO MÍNIMO PARA DECOLAGEM", "alerta"
     else:
         return "Energia: PRONTA PARA DECOLAGEM", "ok"
@@ -150,7 +147,6 @@ def check_module_status(status):
 
 
 def calculate_energy_autonomy(energy):
-    # tira as perdas, o gasto da decolagem e a reserva, o que sobra vira tempo de voo
     stored_energy = BATTERY_CAPACITY_KWH * (energy / 100)
     energy_losses = stored_energy * ENERGY_LOSS_RATE
     usable_energy = stored_energy - energy_losses
@@ -225,7 +221,6 @@ def verify_launch(internal_temp, external_temp, integrity, energy, pressure_val,
         print(colorize(result_msg, Colors.RED))
         return False
     elif has_alert:
-        # alerta em qualquer sistema ja segura o lancamento
         result_msg = "DECOLAGEM ABORTADA - Alertas detectados nos sistemas"
         print(colorize(result_msg, Colors.RED))
         return False
@@ -235,6 +230,16 @@ def verify_launch(internal_temp, external_temp, integrity, energy, pressure_val,
         return True
 
 
-verify_launch(internal_temperature, external_temperature, structural_integrity, energy_level, pressure_value, module_status)
+launch_ok = verify_launch(internal_temperature, external_temperature, structural_integrity, energy_level, pressure_value, module_status)
 
-print_energy_analysis(energy_level)
+autonomy_hours = print_energy_analysis(energy_level)
+
+telemetry = {
+    "temperatura interna": f"{internal_temperature} °C",
+    "temperatura externa": f"{external_temperature} °C",
+    "integridade estrutural": structural_integrity,
+    "nível de energia": f"{energy_level}%",
+    "pressão do tanque": f"{pressure_value} bar",
+    "status dos módulos": module_status,
+}
+run_ai_analysis(telemetry, launch_ok, autonomy_hours)
